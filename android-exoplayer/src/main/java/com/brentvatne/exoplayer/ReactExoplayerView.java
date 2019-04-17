@@ -60,6 +60,8 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 
@@ -279,6 +281,17 @@ class ReactExoplayerView extends FrameLayout implements
         }
     }
 
+    /**
+     * Returns a new HttpDataSource factory.
+     *
+     * @param useBandwidthMeter Whether to set {@link #BANDWIDTH_METER} as a listener to the new
+     *     DataSource factory.
+     * @return A new HttpDataSource factory.
+     */
+    private HttpDataSource.Factory buildHttpDataSourceFactory(boolean useBandwidthMeter) {
+        return new DefaultHttpDataSourceFactory("sctv", useBandwidthMeter ? BANDWIDTH_METER : null);
+    }
+
     private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
         int type = Util.inferContentType(!TextUtils.isEmpty(overrideExtension) ? "." + overrideExtension
                 : uri.getLastPathSegment());
@@ -430,7 +443,8 @@ class ReactExoplayerView extends FrameLayout implements
      * @return A new DataSource factory.
      */
     private DataSource.Factory buildDataSourceFactory(boolean useBandwidthMeter) {
-        return DataSourceUtil.getDefaultDataSourceFactory(this.themedReactContext, useBandwidthMeter ? BANDWIDTH_METER : null, requestHeaders);
+        //return DataSourceUtil.getDefaultDataSourceFactory(this.themedReactContext, useBandwidthMeter ? BANDWIDTH_METER : null, requestHeaders);
+        return buildHttpDataSourceFactory(useBandwidthMeter);
     }
 
     // AudioManager.OnAudioFocusChangeListener implementation
@@ -705,9 +719,12 @@ class ReactExoplayerView extends FrameLayout implements
             this.srcUri = uri;
             this.extension = extension;
             this.requestHeaders = headers;
-            this.mediaDataSourceFactory = DataSourceUtil.getDefaultDataSourceFactory(this.themedReactContext, BANDWIDTH_METER, this.requestHeaders);
+            //this.mediaDataSourceFactory = DataSourceUtil.getDefaultDataSourceFactory(this.themedReactContext, BANDWIDTH_METER, this.requestHeaders);
+            this.mediaDataSourceFactory = buildHttpDataSourceFactory(true);
 
-            if (!isOriginalSourceNull && !isSourceEqual) {
+            if (!isSourceEqual) {
+                Log.d("setSRC", "reload");
+                releasePlayer();
                 reloadSource();
             }
         }
@@ -724,7 +741,8 @@ class ReactExoplayerView extends FrameLayout implements
 
             this.srcUri = uri;
             this.extension = extension;
-            this.mediaDataSourceFactory = DataSourceUtil.getRawDataSourceFactory(this.themedReactContext);
+            //this.mediaDataSourceFactory = DataSourceUtil.getRawDataSourceFactory(this.themedReactContext);
+            this.mediaDataSourceFactory = buildHttpDataSourceFactory(false);
 
             if (!isOriginalSourceNull && !isSourceEqual) {
                 reloadSource();
